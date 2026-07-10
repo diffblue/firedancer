@@ -522,6 +522,11 @@ calculate_reward_points_partitioned( fd_bank_t *                    bank,
        to ensure that we audit the feature properly if this happens. */
 
     uint idx = (uint)fd_vote_rewards_map_idx_query( vote_ele_map, &stake_delegation->vote_account, UINT_MAX, vote_ele );
+
+    if( FD_LIKELY( stake_delegation_idx<runtime_stack->expected_stake_accounts ) ) {
+      runtime_stack->stakes.stake_points_result[ stake_delegation_idx ].vote_idx = idx;
+    }
+
     if( FD_UNLIKELY( idx==UINT_MAX ) ) continue;
 
     fd_calculated_stake_points_t   stake_points_result_[1];
@@ -594,21 +599,28 @@ calculate_stake_vote_rewards( fd_bank_t *                    bank,
     }
     calculated_stake_rewards->success = 0;
 
-    fd_vote_rewards_t * vote_ele = runtime_stack->stakes.vote_ele;
-    fd_vote_rewards_map_t * vote_ele_map = runtime_stack->stakes.vote_map;
-    uint idx = (uint)fd_vote_rewards_map_idx_query( vote_ele_map, &stake_delegation->vote_account, UINT_MAX, vote_ele );
+    int cached = !is_recalculation && stake_delegation_idx<runtime_stack->expected_stake_accounts;
+
+    uint idx;
+    if( FD_LIKELY( cached ) ) {
+      idx = runtime_stack->stakes.stake_points_result[ stake_delegation_idx ].vote_idx;
+    } else {
+      fd_vote_rewards_t *     vote_ele     = runtime_stack->stakes.vote_ele;
+      fd_vote_rewards_map_t * vote_ele_map = runtime_stack->stakes.vote_map;
+      idx = (uint)fd_vote_rewards_map_idx_query( vote_ele_map, &stake_delegation->vote_account, UINT_MAX, vote_ele );
+    }
     if( FD_UNLIKELY( idx==UINT_MAX ) ) continue;
 
     fd_calculated_stake_points_t   stake_points_result_[1];
     fd_calculated_stake_points_t * stake_points_result;
-    if( is_recalculation || FD_UNLIKELY( stake_delegation_idx>=runtime_stack->expected_stake_accounts ) ) {
+    if( FD_LIKELY( cached ) ) {
+      stake_points_result = &runtime_stack->stakes.stake_points_result[ stake_delegation_idx ];
+    } else {
       fd_epoch_credits_t * epoch_credits = &fd_bank_epoch_credits( bank )[ idx ];
 
       /* ULONG_MAX disables the tag fast path. */
       calculate_stake_points( epoch_credits, stake_history, stake_delegation, &bank->f.warmup_cooldown_rate_epoch, ULONG_MAX, stake_points_result_ );
       stake_points_result = stake_points_result_;
-    } else {
-      stake_points_result = &runtime_stack->stakes.stake_points_result[ stake_delegation_idx ];
     }
 
     /* redeem_rewards is actually just responsible for calculating the
