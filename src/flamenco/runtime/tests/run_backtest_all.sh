@@ -165,3 +165,4 @@ src/flamenco/runtime/tests/run_ledger_backtest.sh -l reduce_slot_time_to_350ms-o
 src/flamenco/runtime/tests/run_ledger_backtest.sh -l raise_block_limits_to_100m-out-of-order --zst 2 -m 50000 -e 1357
 src/flamenco/runtime/tests/run_ledger_backtest.sh -l reduce_slot_time_to_250ms-out-of-order --zst 2 -m 50000 -e 1865
 src/flamenco/runtime/tests/run_ledger_backtest.sh -l reduce_slot_time_to_300ms-out-of-order --zst 2 -m 50000 -e 2364
+src/flamenco/runtime/tests/run_ledger_backtest.sh -l upgrade_bpf_stake_program_to_v5_1 -m 50000 -e 1795
